@@ -184,10 +184,10 @@ function generateHeaders(apiKey, secretKey, pathName, requestBody) {
   const hash = authHash(secretKey, pathName, contentMd5, date)
 
   return {
-    'Content-Type': CONTENT_TYPE,
-    'Accept': CONTENT_TYPE,
-    'Date': date,
+    'Accept': 'application/vnd.regalii.v3.2+json',
+    'Authorization': `APIAuth ${apiKey}:${hash}`,
     'Content-MD5': contentMd5,
-    'Authorization': `APIAuth ${apiKey}:${hash}`
+    'Content-Type': CONTENT_TYPE,
+    'X-Date': date
   }
 }
