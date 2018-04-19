@@ -3,20 +3,22 @@
 import assign from 'lodash/assign'
 import get from 'lodash/get'
 import btoa from 'btoa'
+import crypto  from 'crypto'
 
 export default function (options, req) {
   const {
     operation,
     requestBody,
     securities,
-    spec
+    spec,
+    pathName
   } = options
 
   let {
     requestContentType
   } = options
 
-  req = applySecurities({request: req, securities, operation, spec})
+  req = applySecurities({request: req, securities, operation, spec, pathName, requestBody})
 
   const requestBodyDef = operation.requestBody || {}
   const requestBodyMediaTypes = Object.keys(requestBodyDef.content || {})
@@ -88,7 +90,7 @@ export default function (options, req) {
 
 // Add security values, to operations - that declare their need on them
 // Adapted from the Swagger2 implementation
-export function applySecurities({request, securities = {}, operation = {}, spec}) {
+export function applySecurities({request, securities = {}, operation = {}, spec, pathName, requestBody}) {
   const result = assign({}, request)
   const {authorized = {}} = securities
   const security = operation.security || spec.security || []
@@ -137,6 +139,11 @@ export function applySecurities({request, securities = {}, operation = {}, spec}
           if (schema.scheme === 'bearer') {
             result.headers.Authorization = `Bearer ${value}`
           }
+
+          if (schema.scheme === 'hmac-sha1') {
+            const { apiKey, secretKey } = value
+            result.headers = generateHeaders(apiKey, secretKey, pathName, requestBody)
+          }
         }
         else if (type === 'oauth2') {
           const token = auth.token || {}
@@ -154,4 +161,33 @@ export function applySecurities({request, securities = {}, operation = {}, spec}
   })
 
   return result
+}
+
+const CONTENT_TYPE = 'application/json'
+
+function md5(requestBody) {
+  if (requestBody) {
+    return crypto.createHash('md5').update(requestBody).digest('base64')
+  }
+  return ''
+}
+
+function authHash(secretKey, endpoint, contentMd5, date) {
+  const data = [CONTENT_TYPE, contentMd5, endpoint, date].join(',')
+
+  return crypto.createHmac('sha1', secretKey).update(data).digest('base64')
+}
+
+function generateHeaders(apiKey, secretKey, pathName, requestBody) {
+  const date = new Date().toUTCString()
+  const contentMd5 = md5(requestBody)
+  const hash = authHash(secretKey, pathName, contentMd5, date)
+
+  return {
+    'Content-Type': CONTENT_TYPE,
+    'Accept': CONTENT_TYPE,
+    'Date': date,
+    'Content-MD5': contentMd5,
+    'Authorization': `APIAuth ${apiKey}:${hash}`
+  }
 }
