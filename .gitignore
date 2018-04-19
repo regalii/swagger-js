@@ -1,7 +1,6 @@
 node_modules/
 bower_components/
 npm-debug.log*
-dist/
 sessions/
 .idea
 *.iml
@@ -22,3 +21,4 @@ notes/
 test/specmap/data/private
 browser
 package-lock.json
+yarn.lock

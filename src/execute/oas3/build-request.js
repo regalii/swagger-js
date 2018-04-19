@@ -2,8 +2,12 @@
 // `src/execute/index.js#buildRequest`
 import assign from 'lodash/assign'
 import get from 'lodash/get'
+import isPlainObject from 'lodash/isPlainObject'
+import isArray from 'lodash/isArray'
 import btoa from 'btoa'
 import {Buffer} from 'buffer/'
+import crypto  from 'crypto'
+import {mergeInQueryOrForm} from '../../http' // Used to get the computed URL for endpoint used to compute the checksum
 
 export default function (options, req) {
   const {
@@ -18,7 +22,11 @@ export default function (options, req) {
     requestContentType
   } = options
 
-  req = applySecurities({request: req, securities, operation, spec})
+  const tempRequest = assign({}, req)
+  mergeInQueryOrForm(tempRequest) // set req.url with full params
+  const pathName = tempRequest.url.replace(options.server, "")
+
+  req = applySecurities({request: req, securities, operation, spec, pathName, requestBody, requestContentType})
 
   const requestBodyDef = operation.requestBody || {}
   const requestBodyMediaTypes = Object.keys(requestBodyDef.content || {})
@@ -107,7 +115,7 @@ export default function (options, req) {
 
 // Add security values, to operations - that declare their need on them
 // Adapted from the Swagger2 implementation
-export function applySecurities({request, securities = {}, operation = {}, spec}) {
+export function applySecurities({request, securities = {}, operation = {}, spec, pathName, requestBody, requestContentType}) {
   const result = assign({}, request)
   const {authorized = {}} = securities
   const security = operation.security || spec.security || []
@@ -156,6 +164,13 @@ export function applySecurities({request, securities = {}, operation = {}, spec}
           if (schema.scheme === 'bearer') {
             result.headers.Authorization = `Bearer ${value}`
           }
+
+          if (schema.scheme === 'hmac-sha1') {
+            const { apiKey, secretKey } = value
+            result.headers = Object.assign({}, result.headers,
+              generateHeaders(apiKey, secretKey, pathName, requestBody, requestContentType, result)
+            )
+          }
         }
         else if (type === 'oauth2') {
           const token = auth.token || {}
@@ -173,4 +188,40 @@ export function applySecurities({request, securities = {}, operation = {}, spec}
   })
 
   return result
+}
+
+function md5(requestBody) {
+  let localRequestBody = requestBody;
+
+  if (localRequestBody) {
+    if (isPlainObject(localRequestBody) || isArray(localRequestBody)) {
+      localRequestBody = JSON.stringify(localRequestBody)
+    }
+
+    return crypto.createHash('md5').update(localRequestBody).digest('base64')
+  }
+  return ''
+}
+
+function authHash(secretKey, endpoint, contentMd5, date, requestContentType, method, responseContentType) {
+  let data = [requestContentType, contentMd5, endpoint, date]
+
+  // Include method to the canonical-string only for API V4
+  if (responseContentType.includes('4.0')) {
+    data = [method, ...data];
+  }
+
+  return crypto.createHmac('sha1', secretKey).update(data.join(',')).digest('base64')
+}
+
+function generateHeaders(apiKey, secretKey, pathName, requestBody, requestContentType, { method, headers: { accept: responseContentType } }) {
+  const date = new Date().toUTCString()
+  const contentMd5 = md5(requestBody)
+  const hash = authHash(secretKey, pathName, contentMd5, date, requestContentType, method, responseContentType)
+
+  return {
+    'Authorization': `APIAuth ${apiKey}:${hash}`,
+    'Content-MD5': contentMd5,
+    'X-Date': date
+  }
 }
