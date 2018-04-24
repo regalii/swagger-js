@@ -4,19 +4,23 @@ import assign from 'lodash/assign'
 import get from 'lodash/get'
 import btoa from 'btoa'
 import crypto  from 'crypto'
+import {mergeInQueryOrForm} from '../../http' // Used to get the computed URL for endpoint used to compute the checksum
 
 export default function (options, req) {
   const {
     operation,
     requestBody,
     securities,
-    spec,
-    pathName
+    spec
   } = options
 
   let {
     requestContentType
   } = options
+
+  const tempRequest = assign({}, req)
+  mergeInQueryOrForm(tempRequest) // set req.url with full params
+  const pathName = tempRequest.url.replace(options.server, "")
 
   req = applySecurities({request: req, securities, operation, spec, pathName, requestBody})
 

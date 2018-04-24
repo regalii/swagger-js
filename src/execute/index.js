@@ -76,7 +76,7 @@ export function execute({
     operationId = legacyIdFromPathMethod(pathName, method)
   }
 
-  const request = self.buildRequest({spec, operationId, parameters, securities, http, pathName, ...extras})
+  const request = self.buildRequest({spec, operationId, parameters, securities, http, ...extras})
 
   if (request.body && (isPlainObject(request.body) || isArray(request.body))) {
     request.body = JSON.stringify(request.body)
