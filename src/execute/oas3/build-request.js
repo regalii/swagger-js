@@ -171,6 +171,10 @@ const CONTENT_TYPE = 'application/json'
 
 function md5(requestBody) {
   if (requestBody) {
+    if (isPlainObject(requestBody) || isArray(requestBody)) {
+      requestBody = JSON.stringify(requestBody)
+    }
+    
     return crypto.createHash('md5').update(requestBody).digest('base64')
   }
   return ''
