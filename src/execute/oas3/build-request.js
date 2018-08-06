@@ -166,7 +166,7 @@ export function applySecurities({request, securities = {}, operation = {}, spec,
           }
 
           if (schema.scheme === 'hmac-sha1') {
-            const { apiKey, secretKey } = value
+            const {apiKey, secretKey} = value
             result.headers = Object.assign({}, result.headers,
               generateHeaders(apiKey, secretKey, pathName, requestBody, requestContentType, result)
             )
@@ -191,7 +191,7 @@ export function applySecurities({request, securities = {}, operation = {}, spec,
 }
 
 function md5(requestBody) {
-  let localRequestBody = requestBody;
+  let localRequestBody = requestBody
 
   if (localRequestBody) {
     if (isPlainObject(localRequestBody) || isArray(localRequestBody)) {
@@ -203,25 +203,20 @@ function md5(requestBody) {
   return ''
 }
 
-function authHash(secretKey, endpoint, contentMd5, date, requestContentType, method, responseContentType) {
-  let data = [requestContentType, contentMd5, endpoint, date]
-
-  // Include method to the canonical-string only for API V4
-  if (responseContentType.includes('4.0')) {
-    data = [method, ...data];
-  }
-
+function authHash(secretKey, endpoint, contentMd5, date, requestContentType) {
+  const data = [requestContentType, contentMd5, endpoint, date]
   return crypto.createHmac('sha1', secretKey).update(data.join(',')).digest('base64')
 }
 
-function generateHeaders(apiKey, secretKey, pathName, requestBody, requestContentType, { method, headers: { accept: responseContentType } }) {
+function generateHeaders(apiKey, secretKey, pathName, requestBody, requestContentType,
+  {method, headers: {Accept: responseContentType}}) {
   const date = new Date().toUTCString()
   const contentMd5 = md5(requestBody)
-  const hash = authHash(secretKey, pathName, contentMd5, date, requestContentType, method, responseContentType)
+  const hash = authHash(secretKey, encodeURI(pathName), contentMd5, date, requestContentType)
 
   return {
-    'Authorization': `APIAuth ${apiKey}:${hash}`,
     'Content-MD5': contentMd5,
-    'X-Date': date
+    Date: date,
+    Authorization: `APIAuth ${apiKey}:${hash}`
   }
 }
