@@ -1,11 +1,14 @@
-Swagger-JS
-===========
+# Swagger Client <img src="https://raw.githubusercontent.com/swagger-api/swagger.io/wordpress/images/assets/SW-logo-clr.png" height="50" align="right">
 
 [![Build Status](https://travis-ci.org/swagger-api/swagger-js.svg?branch=master)](https://travis-ci.org/swagger-api/swagger-js)
 
+**Swagger Client** is a JavaScript module that allows you to fetch, resolve, and interact with Swagger/OpenAPI documents.
+
 ## New!
 
-**This is the new version of swagger-js, 3.x. Want to learn more? Check out our [FAQ](https://github.com/swagger-api/swagger-js/blob/master/docs/MIGRATION_2_X.md).**
+**This is the new version of swagger-js, 3.x.** The new version supports Swagger 2.0 as well as OpenAPI 3.
+
+ Want to learn more? Check out our [FAQ](https://github.com/swagger-api/swagger-js/blob/master/docs/MIGRATION_2_X.md).
 
 For the older version of swagger-js, refer to the [*2.x branch*](https://github.com/swagger-api/swagger-js/tree/2.x).
 
@@ -40,7 +43,7 @@ const Swagger = require('swagger-client')
 ##### Import in browser
 
 ```html
-<script src='browser/swagger-client.js' type='text/javascript'></script>
+<script src='//unpkg.com/swagger-client' type='text/javascript'></script>
 <script>
 var swaggerClient = new SwaggerClient(specUrl);
 </script>
@@ -49,15 +52,15 @@ var swaggerClient = new SwaggerClient(specUrl);
 
 #### API
 
-This lib exposes these functionalities:
+This lib exposes these functionalities for Swagger 2.0 and OpenAPI 3:
 
 - Static functions for...
   -  HTTP Client
-  - Swagger Spec Resolver ( OAS 2.0 )
+  -  Document Resolver (monolithic & subtree)
   - TryItOut Executor
 - A constructor with the methods...
   - HTTP Client, for convenience
-  - Swagger Spec Resolver ( OAS 2.0 ), which will use `url` or `spec` from the instance
+  - Document Resolver, which will use `url` or `spec` from the instance
   - TryItOut Executor, bound to the `http` and `spec` instance properties
   - Tags Interface, also bound to the instance
 
@@ -239,14 +242,12 @@ Swagger({...}).then((client) => {
 In Browser
 ----------
 
-Prepare swagger-client.js by `npm run build-bundle`
-Note, browser version exports class `SwaggerClient` to global namespace
 If you need activate CORS requests, just enable it by `withCredentials` property at `http`
 
 ```html
 <html>
 <head>
-<script src='browser/swagger-client.js' type='text/javascript'></script>
+<script src='//unpkg.com/swagger-client' type='text/javascript'></script> 
 <script>
 
 var specUrl = 'http://petstore.swagger.io/v2/swagger.json'; // data urls are OK too 'data:application/json;base64,abc...'
@@ -318,11 +319,11 @@ As such we've left the static version of `http` to not perform any serialization
 ```sh
 npm install
 npm run test         # run test
-npm run test:watch   # run test with change watching
-npm run lint         # run lint
+npm run test:unit:watch   # run test with change watching
+npm run test:lint         # run lint
 npm run build        # package to release
-npm run build-dev    # package with non-minified dist/index.js (for debugging)
-npm run build-bundle # build browser version available at .../browser
+npm run build:umd:watch    # package with non-minified dist/index.js (for debugging)
+npm run build:bundle # build browser version available at .../browser/index.js
 ```
 
 # Migration from 2.x
@@ -338,3 +339,4 @@ Please disclose any security-related issues or vulnerabilities by emailing [secu
 ### Graveyard
 
 For features known to be missing from 3.x please see [the Graveyard](docs/GRAVEYARD.md)
+
